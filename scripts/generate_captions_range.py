@@ -34,6 +34,10 @@ import pandas as pd
 
 from OptimizedMomentQueryGenerator import OptimizedMomentQueryGenerator
 
+# Project root is parent of scripts/
+SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+PROJECT_ROOT = os.path.dirname(SCRIPT_DIR)
+
 
 # ---------------------------------------------------------------------------
 # 로깅 설정
@@ -221,7 +225,7 @@ def ensure_dir(path: Union[str, Path]) -> Path:
 
 def read_comments(start_idx: int, end_idx: Optional[int]) -> Tuple[pd.DataFrame, int]:
     """CSV에서 댓글 범위를 읽어 DataFrame과 전체 수를 반환."""
-    csv_path = Path("csv") / "merged_filtered_comments_with_dedup_lang.csv"
+    csv_path = Path(PROJECT_ROOT) / "csv" / "merged_filtered_comments_with_dedup_lang.csv"
     if not csv_path.exists():
         raise FileNotFoundError(f"CSV 파일을 찾을 수 없습니다: {csv_path}")
 
@@ -632,7 +636,7 @@ def save_overall_summary(
     total_videos: int,
     elapsed: float,
 ) -> Path:
-    output_path = Path(f"captions_summary_{start_idx}_to_{end_idx}.json")
+    output_path = Path(PROJECT_ROOT) / f"captions_summary_{start_idx}_to_{end_idx}.json"
     payload = {
         "total_comments_in_csv": total_comments,
         "processed_comments": processed_comments,
@@ -689,7 +693,7 @@ def generate_captions_range(
                 grouped = comments_df.groupby("video_id")
 
     # 이미 처리된 비디오 제거
-    captions_dir = Path("captions_by_video")
+    captions_dir = Path(PROJECT_ROOT) / "captions_by_video"
     if captions_dir.exists():
         existing_ids = {
             restore_video_id(Path(file).stem.replace("captions_", ""))

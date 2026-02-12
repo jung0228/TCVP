@@ -38,7 +38,7 @@ A pipeline that collects and analyzes YouTube video comments, combines them with
 
 - **Python** 3.8+
 - **yt-dlp**: YouTube metadata and download
-- **FFmpeg**: Video segment extraction (`generate_captions_range.py`)
+- **FFmpeg**: Video segment extraction (`scripts/generate_captions_range.py`)
 - **API keys** (optional): OpenAI or Letsur AI Gateway for segment integration and query generation
 
 ### Quick install
@@ -96,7 +96,7 @@ These directories are used by the pipeline (scripts may create them if missing):
 
 ## Usage
 
-The pipeline runs in order **0 → 1 → 2 → 3 → (4) → 5 → 6 → 7 → 8**. See [docs/pipeline.md](docs/pipeline.md) for detailed inputs/outputs.
+Run all commands **from the project root**. The pipeline runs in order **0 → 1 → 2 → 3 → (4) → 5 → 6 → 7 → 8**. See [docs/pipeline.md](docs/pipeline.md) for detailed inputs/outputs.
 
 ### Step 0: Channel setup (manual)
 
@@ -106,10 +106,10 @@ Prepare `csv/channel_categories.csv` with channel names and categories.
 
 ```bash
 # Single channel
-python find_popular_videos.py @channel_handle --top 10 --save --channel-name "Channel Name" --category "category"
+python scripts/find_popular_videos.py @channel_handle --top 10 --save --channel-name "Channel Name" --category "category"
 
 # Batch (uses csv/channel_categories.csv)
-python find_popular_videos.py --batch --top 10
+python scripts/find_popular_videos.py --batch --top 10
 ```
 
 Example categories: `sport`, `gaming`, `comedy`, `entertainment`, `talk show`, `podcast`, `making`
@@ -117,7 +117,7 @@ Example categories: `sport`, `gaming`, `comedy`, `entertainment`, `talk show`, `
 ### Step 2: Crawl comments
 
 ```bash
-python crawl_comments.py --workers 5
+python scripts/crawl_comments.py --workers 5
 ```
 
 - `--max-comments`: Max comments per video (default: unlimited)
@@ -127,7 +127,7 @@ python crawl_comments.py --workers 5
 ### Step 3: Merge comments and language filter
 
 ```bash
-python yt_merge_with_dedup_lang.py
+python scripts/yt_merge_with_dedup_lang.py
 ```
 
 Keeps target language(s) (e.g. English), deduplicates, and writes `csv/merged_filtered_comments_with_dedup_lang.csv`.
@@ -136,10 +136,10 @@ Keeps target language(s) (e.g. English), deduplicates, and writes `csv/merged_fi
 
 ```bash
 # All channels
-python download_videos.py --resolution 360
+python scripts/download_videos.py --resolution 360
 
 # Specific channels only
-python download_videos.py --resolution 360 --channels Channel1 Channel2
+python scripts/download_videos.py --resolution 360 --channels Channel1 Channel2
 ```
 
 - `--resolution`: `360`, `480`, `720`, `1080` (default: `360`)
@@ -148,7 +148,7 @@ python download_videos.py --resolution 360 --channels Channel1 Channel2
 ### Step 5: Generate captions (segments + analysis)
 
 ```bash
-python generate_captions_range.py 1 100
+python scripts/generate_captions_range.py 1 100
 ```
 
 - Arguments: start comment index, end comment index (omit end to process to the end)
@@ -160,10 +160,10 @@ Output: `captions_by_video/captions_<video_id>.json`
 
 ```bash
 # OpenAI
-python segment_integrator.py captions_by_video --folder
+python scripts/segment_integrator.py captions_by_video --folder
 
 # Letsur
-python segment_integrator_staxai.py captions_by_video --folder
+python scripts/segment_integrator_staxai.py captions_by_video --folder
 ```
 
 Output: `*_integrated.json`
@@ -171,7 +171,7 @@ Output: `*_integrated.json`
 ### Step 7: Modality gating
 
 ```bash
-python modality_gating.py captions_by_video_integrated --folder
+python scripts/modality_gating.py captions_by_video_integrated --folder
 ```
 
 Output: `*_classified.json`
@@ -180,10 +180,10 @@ Output: `*_classified.json`
 
 ```bash
 # OpenAI
-python query_generator.py --input captions_by_video_classified --folder
+python scripts/query_generator.py --input captions_by_video_classified --folder
 
 # Letsur
-python query_generator_staxai.py --input captions_by_video_classified --folder
+python scripts/query_generator_staxai.py --input captions_by_video_classified --folder
 ```
 
 Output: `*_moment_queries.json`
@@ -209,17 +209,18 @@ VideoMomentRetrieval/
 │   └── channel_categories.example.csv
 ├── docs/
 │   └── pipeline.md               # Pipeline details
-├── find_popular_videos.py        # 1. Popular video discovery
-├── crawl_comments.py             # 2. Comment crawling
-├── yt_merge_with_dedup_lang.py   # 3. Comment merge & language filter
-├── download_videos.py            # 4. Video download (optional)
-├── generate_captions_range.py    # 5. Caption generation
-├── OptimizedMomentQueryGenerator.py  # Core module for caption generation
-├── segment_integrator.py         # 6. Segment integration (OpenAI)
-├── segment_integrator_staxai.py  # 6. Segment integration (Letsur)
-├── modality_gating.py            # 7. Modality gating
-├── query_generator.py            # 8. Query generation (OpenAI)
-└── query_generator_staxai.py     # 8. Query generation (Letsur)
+└── scripts/                      # All pipeline scripts
+    ├── find_popular_videos.py        # 1. Popular video discovery
+    ├── crawl_comments.py             # 2. Comment crawling
+    ├── yt_merge_with_dedup_lang.py   # 3. Comment merge & language filter
+    ├── download_videos.py            # 4. Video download (optional)
+    ├── generate_captions_range.py    # 5. Caption generation
+    ├── OptimizedMomentQueryGenerator.py  # Core module for caption generation
+    ├── segment_integrator.py         # 6. Segment integration (OpenAI)
+    ├── segment_integrator_staxai.py  # 6. Segment integration (Letsur)
+    ├── modality_gating.py            # 7. Modality gating
+    ├── query_generator.py            # 8. Query generation (OpenAI)
+    └── query_generator_staxai.py     # 8. Query generation (Letsur)
 ```
 
 ---
@@ -229,21 +230,21 @@ VideoMomentRetrieval/
 ```
 csv/channel_categories.csv
         ↓
-find_popular_videos.py  →  csv/video_id_mapping.csv
+scripts/find_popular_videos.py  →  csv/video_id_mapping.csv
         ↓
-crawl_comments.py       →  Comments/<video_id>_comments.csv
+scripts/crawl_comments.py       →  Comments/<video_id>_comments.csv
         ↓
-yt_merge_with_dedup_lang.py  →  csv/merged_filtered_comments_with_dedup_lang.csv
+scripts/yt_merge_with_dedup_lang.py  →  csv/merged_filtered_comments_with_dedup_lang.csv
         ↓
-download_videos.py (optional)  →  {output_dir}/{category}/{channel}/{video_id}.mp4
+scripts/download_videos.py (optional)  →  {output_dir}/{category}/{channel}/{video_id}.mp4
         ↓
-generate_captions_range.py  →  captions_by_video/captions_<video_id>.json
+scripts/generate_captions_range.py  →  captions_by_video/captions_<video_id>.json
         ↓
-segment_integrator*.py  →  *_integrated.json
+scripts/segment_integrator*.py  →  *_integrated.json
         ↓
-modality_gating.py  →  *_classified.json
+scripts/modality_gating.py  →  *_classified.json
         ↓
-query_generator*.py  →  *_moment_queries.json
+scripts/query_generator*.py  →  *_moment_queries.json
 ```
 
 ---

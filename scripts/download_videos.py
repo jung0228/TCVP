@@ -9,9 +9,9 @@ import subprocess
 import os
 from collections import defaultdict
 
-# 프로젝트 루트 및 경로 (csv/, Comments/)
+# Project root is parent of scripts/
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
-PROJECT_ROOT = SCRIPT_DIR
+PROJECT_ROOT = os.path.dirname(SCRIPT_DIR)
 MAPPING_FILE = os.path.join(PROJECT_ROOT, 'csv', 'video_id_mapping.csv')
 COMMENTS_DIR = os.path.join(PROJECT_ROOT, 'Comments')
 

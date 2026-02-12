@@ -1,5 +1,10 @@
 import os
 import json
+
+# Project root is parent of scripts/
+_SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+PROJECT_ROOT = os.path.dirname(_SCRIPT_DIR)
+
 import torch
 import soundfile as sf
 from transformers import Qwen2_5OmniForConditionalGeneration, Qwen2_5OmniProcessor
@@ -676,7 +681,7 @@ Keep each part concise but informative."""
                                         use_parallel: bool = True, use_batch: bool = False) -> Dict[str, Any]:
         """최적화된 여러 댓글 처리"""
         try:
-            df = pd.read_csv(os.path.join('csv', 'merged_filtered_comments_with_dedup_lang.csv'))
+            df = pd.read_csv(os.path.join(PROJECT_ROOT, 'csv', 'merged_filtered_comments_with_dedup_lang.csv'))
             
             if len(df) == 0:
                 return {"error": "Empty CSV file"}

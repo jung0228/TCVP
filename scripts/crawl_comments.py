@@ -11,9 +11,9 @@ from collections import defaultdict
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from threading import Lock
 
-# 프로젝트 루트 및 csv 경로
+# Project root is parent of scripts/
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
-PROJECT_ROOT = SCRIPT_DIR
+PROJECT_ROOT = os.path.dirname(SCRIPT_DIR)
 MAPPING_FILE = os.path.join(PROJECT_ROOT, 'csv', 'video_id_mapping.csv')
 
 # 병렬 처리를 위한 락

@@ -4,6 +4,11 @@ import re
 import os
 from langdetect import detect, LangDetectException
 
+# Project root is parent of scripts/
+SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+PROJECT_ROOT = os.path.dirname(SCRIPT_DIR)
+
+
 def contains_timestamp(text):
     """
     텍스트에 타임스탬프가 포함되어 있는지 확인합니다.
@@ -86,7 +91,7 @@ def load_video_mapping():
     video_id_mapping.csv 파일을 읽어서 비디오 ID와 채널명, 카테고리 정보를 반환합니다.
     """
     try:
-        mapping_df = pd.read_csv(os.path.join("csv", "video_id_mapping.csv"))
+        mapping_df = pd.read_csv(os.path.join(PROJECT_ROOT, "csv", "video_id_mapping.csv"))
         # video_id를 키로 하는 딕셔너리 생성
         video_mapping = {}
         for _, row in mapping_df.iterrows():
@@ -114,8 +119,8 @@ def merge_filtered_files_with_dedup_lang(target_languages=None, top_n=20):
     # csv/video_id_mapping.csv에서 정보 로드
     video_mapping = load_video_mapping()
     
-    # Comments 폴더에서 {video_id}_comments.csv 파일들 찾기
-    comments_dir = "Comments"
+    # Comments folder (under project root)
+    comments_dir = os.path.join(PROJECT_ROOT, "Comments")
     if not os.path.exists(comments_dir):
         print(f"❌ {comments_dir} 폴더를 찾을 수 없습니다.")
         return None
@@ -257,8 +262,8 @@ def merge_filtered_files_with_dedup_lang(target_languages=None, top_n=20):
             print(f"🏷️ 카테고리별 댓글 수: {dict(category_counts)}")
         
         # 결과 저장
-        output_file = os.path.join("csv", "merged_filtered_comments_with_dedup_lang.csv")
-        os.makedirs("csv", exist_ok=True)
+        output_file = os.path.join(PROJECT_ROOT, "csv", "merged_filtered_comments_with_dedup_lang.csv")
+        os.makedirs(os.path.join(PROJECT_ROOT, "csv"), exist_ok=True)
         merged_df.to_csv(output_file, index=False)
         print(f"💾 결과가 {output_file}에 저장되었습니다.")
         

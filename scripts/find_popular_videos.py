@@ -13,9 +13,9 @@ import time
 import os
 from operator import itemgetter
 
-# 프로젝트 루트 및 csv 경로 (유명 레포 구조: csv/ 에 매핑·채널 정보)
+# Project root is parent of scripts/
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
-PROJECT_ROOT = SCRIPT_DIR
+PROJECT_ROOT = os.path.dirname(SCRIPT_DIR)
 CSV_DIR = os.path.join(PROJECT_ROOT, 'csv')
 MAPPING_FILE = os.path.join(CSV_DIR, 'video_id_mapping.csv')
 CHANNEL_CATEGORIES_FILE = os.path.join(CSV_DIR, 'channel_categories.csv')
