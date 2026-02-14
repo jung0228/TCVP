@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 140" width="720" height="140">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#1a1b2e"/>
+      <stop offset="100%" style="stop-color:#16213e"/>
+    </linearGradient>
+    <filter id="glow">
+      <feGaussianBlur stdDeviation="1" result="coloredBlur"/>
+      <feMerge>
+        <feMergeNode in="coloredBlur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+  <rect width="720" height="140" fill="url(#bg)" rx="12"/>
+  <g fill="none" stroke="#e94560" stroke-width="2" stroke-linecap="round">
+    <path d="M80 70 h40 M120 70 h40 M160 70 h40 M200 70 h40 M240 70 h40 M280 70 h40 M320 70 h40 M360 70 h40 M400 70 h40 M440 70 h40 M480 70 h40 M520 70 h40 M560 70 h40 M600 70 h40 M640 70 h40"/>
+  </g>
+  <g fill="#0f3460" stroke="#e94560" stroke-width="2">
+    <rect x="40" y="45" width="80" height="50" rx="8"/>
+    <rect x="160" y="45" width="80" height="50" rx="8"/>
+    <rect x="280" y="45" width="80" height="50" rx="8"/>
+    <rect x="400" y="45" width="80" height="50" rx="8"/>
+    <rect x="520" y="45" width="80" height="50" rx="8"/>
+  </g>
+  <text x="80" y="78" text-anchor="middle" fill="#eaeaea" font-family="system-ui, sans-serif" font-size="11" font-weight="600">YouTube</text>
+  <text x="200" y="78" text-anchor="middle" fill="#eaeaea" font-family="system-ui, sans-serif" font-size="11" font-weight="600">Comments</text>
+  <text x="320" y="78" text-anchor="middle" fill="#eaeaea" font-family="system-ui, sans-serif" font-size="11" font-weight="600">Captions</text>
+  <text x="440" y="78" text-anchor="middle" fill="#eaeaea" font-family="system-ui, sans-serif" font-size="11" font-weight="600">Modality</text>
+  <text x="560" y="78" text-anchor="middle" fill="#eaeaea" font-family="system-ui, sans-serif" font-size="11" font-weight="600">Queries</text>
+  <text x="360" y="125" text-anchor="middle" fill="#a2a8b3" font-family="system-ui, sans-serif" font-size="10">Video Moment Retrieval Pipeline</text>
+</svg>

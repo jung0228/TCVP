@@ -1,0 +1,753 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>TCVP: A Practical Pipeline for Video Moment Retrieval Datasets</title>
+  <meta name="description" content="TCVP leverages timestamped YouTube comments to build VMR datasets with user-intent-aligned moments and queries. 70% human preference over baselines." />
+  <meta property="og:title" content="TCVP: A Practical Pipeline for Video Moment Retrieval Datasets" />
+  <meta property="og:description" content="VMR dataset pipeline using timestamped comments; 70% preferred in human evaluation." />
+  <meta property="og:type" content="website" />
+  <!-- <meta property="og:image" content="https://yoursite.github.io/TCVP/static/teaser.png" /> -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=DM+Serif+Display:ital@0;1&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg: #ffffff;
+      --text: #1a1a1a;
+      --text-muted: #4a4a4a;
+      --accent: #0d47a1;
+      --accent-light: #1565c0;
+      --border: #e0e0e0;
+      --sans: 'DM Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+    }
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      font-family: var(--sans);
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.7;
+      font-size: 17px;
+    }
+
+    .page {
+      max-width: 900px;
+      margin: 0 auto;
+      padding: 0 1.5rem 5rem;
+    }
+
+    /* ----- Cambrian 느낌: 좌 텍스트 패널 | 우 큰 이미지 ----- */
+    .teaser-block {
+      display: flex;
+      flex-direction: row;
+      width: 100vw;
+      margin-left: calc(50% - 50vw);
+      margin-right: calc(50% - 50vw);
+      min-height: 100vh;
+      overflow: hidden;
+      margin-bottom: 2.5rem;
+    }
+    .teaser-left {
+      flex: 0 0 50%;
+      min-width: 340px;
+      background: #0f172a;
+      padding: 3rem 3rem;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+    }
+    .teaser-block .title-main {
+      font-family: 'DM Serif Display', Georgia, serif;
+      font-size: clamp(2rem, 4vw, 2.75rem);
+      font-weight: 400;
+      line-height: 1.15;
+      color: #eab308;
+      margin: 0 0 0.5rem;
+      letter-spacing: -0.02em;
+    }
+    .teaser-block .title-main .line { display: block; }
+    .teaser-block .subtitle {
+      font-family: var(--sans);
+      font-size: clamp(0.9rem, 1.8vw, 1.05rem);
+      font-weight: 600;
+      color: #fff;
+      line-height: 1.4;
+      margin: 0 0 1.25rem;
+    }
+    .teaser-block .subtitle .line { display: block; }
+    .teaser-block .teaser-intro-label {
+      font-size: 0.9rem;
+      font-weight: 600;
+      color: #fff;
+      margin: 0 0 0.6rem;
+    }
+    .teaser-block .teaser-contrib {
+      list-style: none;
+      padding: 0;
+      margin: 0 0 1.5rem;
+      max-width: none;
+    }
+    .teaser-block .teaser-contrib li {
+      font-size: 0.9rem;
+      color: rgba(255,255,255,0.88);
+      line-height: 1.55;
+      margin-bottom: 0.5rem;
+      padding-left: 1.25rem;
+      position: relative;
+    }
+    .teaser-block .teaser-contrib li::before {
+      content: "•";
+      position: absolute;
+      left: 0;
+      color: #eab308;
+      font-weight: 700;
+    }
+    .teaser-block .link-bar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem 0.75rem;
+    }
+    .teaser-block .link-bar a .link-icon {
+      display: inline-flex;
+      align-items: center;
+      margin-right: 0.25rem;
+    }
+    .teaser-block .link-bar a {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.35rem;
+      color: #1e293b;
+      background: #fef08a;
+      text-decoration: none;
+      font-weight: 600;
+      font-size: 0.9rem;
+      padding: 0.5rem 1rem;
+      border-radius: 8px;
+      border: none;
+    }
+    .teaser-block .link-bar a:hover {
+      background: #fde047;
+    }
+    .teaser-right {
+      flex: 1;
+      min-width: 0;
+      position: relative;
+      background: #334155;
+    }
+    .teaser-right .teaser-bg {
+      position: absolute;
+      inset: 0;
+      background: #334155;
+    }
+    .teaser-right .teaser-bg img {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+    }
+    .teaser-right .teaser-fade {
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(to right, #0f172a 0%, transparent 35%);
+      pointer-events: none;
+    }
+    @media (max-width: 768px) {
+      .teaser-block { flex-direction: column; min-height: auto; }
+      .teaser-left { flex: none; min-height: auto; padding: 2.5rem 1.5rem; }
+      .teaser-right { min-height: 60vh; }
+    }
+
+    /* Authors block — Cambrian: names, then affiliation, then badge */
+    .authors-block {
+      text-align: center;
+      margin-top: 2.5rem;
+      margin-bottom: 2rem;
+      padding-bottom: 2rem;
+      border-bottom: 1px solid var(--border);
+    }
+    .authors-block .names {
+      font-size: 1.15rem;
+      color: var(--text);
+      margin-bottom: 0.5rem;
+    }
+    .authors-block .names a {
+      color: var(--accent);
+      text-decoration: none;
+    }
+    .authors-block .names a:hover { text-decoration: underline; }
+    .authors-block .affiliations {
+      font-size: 1rem;
+      color: var(--text-muted);
+      margin-bottom: 0;
+    }
+    /* Section nav — Cambrian 스타일: 파란 버튼 row + 흰색 "Click to jump" 바 */
+    .section-nav {
+      margin-bottom: 2.5rem;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    .section-nav .links {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 1rem;
+      margin-bottom: 1rem;
+    }
+    .section-nav .links a {
+      display: inline-flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 0.4rem;
+      width: 120px;
+      min-height: 72px;
+      padding: 0.75rem 0.5rem;
+      box-sizing: border-box;
+      color: #0d47a1;
+      background: #e3f2fd;
+      text-decoration: none;
+      font-size: 0.8rem;
+      font-weight: 600;
+      line-height: 1.25;
+      text-align: center;
+      border-radius: 10px;
+      border: 2px solid #1976d2;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+      transition: background 0.2s, border-color 0.2s, box-shadow 0.2s;
+    }
+    .section-nav .links a:hover {
+      background: #bbdefb;
+      border-color: #0d47a1;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.12);
+    }
+    .section-nav .links a .nav-icon {
+      width: 24px;
+      height: 24px;
+      flex-shrink: 0;
+    }
+    .section-nav .links a .nav-icon svg {
+      width: 100%;
+      height: 100%;
+      fill: currentColor;
+    }
+    .section-nav .jump-hint {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.6rem 1rem;
+      background: #fff;
+      border: 1px solid #90caf9;
+      border-radius: 10px;
+      font-size: 0.9rem;
+      color: #1565c0;
+      font-weight: 500;
+    }
+    .section-nav .jump-hint .cursor-icon {
+      width: 18px;
+      height: 18px;
+      flex-shrink: 0;
+    }
+    .section-nav .jump-hint .cursor-icon svg {
+      width: 100%;
+      height: 100%;
+      fill: currentColor;
+    }
+
+    /* ----- Sections (no cards, hr + spacing like Cambrian) ----- */
+    section {
+      margin-bottom: 3rem;
+    }
+    section > h2 {
+      font-family: var(--sans);
+      font-size: 1.5rem;
+      font-weight: 700;
+      margin: 0 0 1rem;
+      padding-bottom: 0.5rem;
+      border-bottom: 1px solid var(--border);
+      color: var(--text);
+    }
+    section h3 {
+      font-size: 1.1rem;
+      font-weight: 600;
+      margin: 1.5rem 0 0.5rem;
+      color: var(--text);
+    }
+    section h3:first-of-type { margin-top: 0; }
+    section p, section ul {
+      margin: 0 0 1rem;
+      color: var(--text);
+    }
+    section ul { padding-left: 1.5rem; }
+    section li { margin-bottom: 0.4rem; }
+    .section-fig {
+      margin: 1rem 0 1.5rem;
+      max-width: 100%;
+    }
+    .section-fig.fig-tight-top {
+      margin-top: 0.35rem;
+    }
+    .section-fig img {
+      width: 100%;
+      height: auto;
+      border-radius: 6px;
+      border: 1px solid var(--border);
+    }
+    .section-fig .fig-caption {
+      font-size: 0.8rem;
+      color: #888;
+      margin-top: 0.5rem;
+      line-height: 1.5;
+      font-style: italic;
+      width: 100%;
+      text-align: justify;
+    }
+    .section-fig .fig-caption strong {
+      font-weight: 400;
+      color: #666;
+      display: inline;
+    }
+    .fig-caption-full {
+      font-size: 0.8rem;
+      color: #888;
+      margin-top: 0.15rem;
+      margin-bottom: 1rem;
+      line-height: 1.5;
+      font-style: italic;
+      width: 100%;
+      text-align: justify;
+    }
+    .fig-caption-full strong {
+      font-weight: 400;
+      color: #666;
+      display: inline;
+    }
+    .section-fig.fig-wide {
+      position: relative;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 65vw;
+      max-width: none;
+      box-sizing: border-box;
+      padding: 0;
+      margin: 1rem 0 1.5rem;
+    }
+    .section-fig.fig-wide img {
+      width: 100%;
+      display: block;
+    }
+    .modality-row {
+      display: flex;
+      align-items: flex-start;
+      gap: 1rem;
+      margin: 1rem 0 0.75rem;
+    }
+    .modality-row .modality-fig {
+      flex: 0 0 38%;
+      max-width: 320px;
+      margin: 0;
+    }
+    .modality-row .modality-fig img {
+      width: 100%;
+      height: auto;
+    }
+    .modality-row .modality-text {
+      flex: 1;
+      min-width: 0;
+    }
+    .modality-row .modality-text h3 { margin-top: 0; margin-bottom: 0.35rem; }
+    .modality-row .modality-text p { margin-bottom: 0.5rem; }
+    .modality-row .modality-text p:last-child { margin-bottom: 0; }
+    @media (max-width: 640px) {
+      .modality-row { flex-direction: column; }
+      .modality-row .modality-fig { max-width: none; }
+    }
+    .human-eval-row {
+      display: flex;
+      align-items: flex-start;
+      gap: 1.5rem;
+      margin: 1rem 0 1.5rem;
+    }
+    .human-eval-row .human-eval-figs {
+      flex: 0 0 38%;
+      max-width: 320px;
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+    }
+    .human-eval-row .human-eval-figs .section-fig {
+      margin: 0;
+    }
+    .human-eval-row .human-eval-figs img {
+      width: 100%;
+      height: auto;
+    }
+    .human-eval-row .human-eval-text {
+      flex: 1;
+      min-width: 0;
+    }
+    .human-eval-row .human-eval-text h3 { margin-top: 0; }
+    @media (max-width: 640px) {
+      .human-eval-row { flex-direction: column; }
+      .human-eval-row .human-eval-figs { max-width: none; }
+    }
+    .human-eval-intro-box {
+      margin-bottom: 1.5rem;
+    }
+    .human-eval-intro-box h3 { margin: 0 0 0.5rem; }
+    .human-eval-intro-box p { margin: 0; }
+    .human-eval-cols {
+      display: flex;
+      gap: 1.5rem;
+      align-items: flex-start;
+    }
+    .human-eval-col {
+      flex: 1;
+      min-width: 0;
+    }
+    .human-eval-col h4 {
+      font-size: 1.05rem;
+      font-weight: 600;
+      margin: 0 0 0.5rem;
+      color: var(--text);
+    }
+    .human-eval-col .section-fig {
+      margin: 1rem 0 0;
+    }
+    .human-eval-col .section-fig img { width: 100%; height: auto; }
+    @media (max-width: 640px) {
+      .human-eval-cols { flex-direction: column; }
+    }
+
+    .intro-block {
+      margin-bottom: 2rem;
+    }
+    .intro-lead {
+      font-size: 1rem;
+      color: var(--text);
+      line-height: 1.7;
+      margin: 0 0 1rem;
+    }
+    .intro-pillars {
+      margin: 0 0 1.25rem;
+      padding-left: 1.25rem;
+    }
+    .intro-pillars p {
+      margin: 0 0 0.35rem;
+      font-size: 0.95rem;
+      color: var(--text);
+      line-height: 1.5;
+    }
+    .intro-pillars .pillar-label {
+      font-weight: 600;
+      color: var(--text);
+    }
+    .intro-outro {
+      font-size: 1rem;
+      color: var(--text);
+      line-height: 1.7;
+      margin: 0 0 2rem;
+    }
+    .intro-outro a {
+      color: var(--accent);
+      text-decoration: none;
+    }
+    .intro-outro a:hover { text-decoration: underline; }
+
+    .tldr {
+      background: #e3f2fd;
+      border-left: 4px solid var(--accent);
+      padding: 0.9rem 1.1rem;
+      margin-bottom: 1rem;
+      font-size: 0.95rem;
+      border-radius: 0 6px 6px 0;
+    }
+
+    /* Pipeline numbered list */
+    .pipeline ol {
+      counter-reset: step;
+      list-style: none;
+      padding-left: 0;
+    }
+    .pipeline li {
+      position: relative;
+      padding-left: 2.75rem;
+      margin-bottom: 1rem;
+    }
+    .pipeline li::before {
+      counter-increment: step;
+      content: counter(step);
+      position: absolute;
+      left: 0;
+      top: 0;
+      width: 1.75rem;
+      height: 1.75rem;
+      background: var(--accent);
+      color: #fff;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.85rem;
+      font-weight: 600;
+      font-family: var(--sans);
+    }
+    .pipeline strong { display: block; margin-bottom: 0.25rem; }
+
+    /* BibTeX */
+    .bib-wrap { margin-top: 1rem; }
+    .bibtex {
+      background: #1a1a1a;
+      color: #e0e0e0;
+      padding: 1.1rem 1.25rem;
+      border-radius: 8px;
+      font-family: 'Consolas', 'Monaco', monospace;
+      font-size: 0.82rem;
+      overflow-x: auto;
+      white-space: pre;
+      margin: 0.5rem 0 0;
+    }
+    .copy-btn {
+      padding: 0.4rem 0.85rem;
+      font-size: 0.85rem;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      background: #fff;
+      cursor: pointer;
+      font-family: var(--sans);
+    }
+    .copy-btn:hover { background: #eee; }
+    .copy-btn.copied { background: #2e7d32; color: #fff; border-color: #2e7d32; }
+
+    footer {
+      text-align: center;
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      margin-top: 3rem;
+    }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <!-- Cambrian 느낌: 좌 텍스트 패널 | 우 큰 이미지 -->
+    <div class="teaser-block">
+      <div class="teaser-left">
+        <h1 class="title-main">
+          <span class="line">TCVP</span>
+        </h1>
+        <p class="subtitle">
+          <span class="line">Bridging the Gap Between Artificial Datasets</span>
+          <span class="line">and Real User Intent</span>
+        </p>
+        <p class="teaser-intro-label">Our contributions are summarized as follows:</p>
+        <ul class="teaser-contrib">
+          <li>We identify limitations of existing VMR datasets, including less meaningful moments and caption-like queries.</li>
+          <li>We introduce a novel perspective on VMR dataset construction by leveraging timestamped YouTube comments.</li>
+          <li>We propose a simple and effective dataset construction pipeline, TCVP, that incorporates comment filtering and modality gating.</li>
+          <li>We conduct extensive qualitative and quantitative evaluations, as well as model benchmarking.</li>
+        </ul>
+        <div class="link-bar">
+          <a href="https://drive.google.com/file/d/1R0IP1KUWmU64yj7jdO5Xcix6tbMDi1Uf/view?usp=sharing"><span class="link-icon" aria-hidden="true"><svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6zm-1 2 5 5h-5V4zm-3 12v-2h4v2h-4zm0-4v-2h4v2h-4zm-2 0v-2h2v2H8zm0 4v-2h2v2H8z"/></svg></span> Paper</a>
+          <a href="https://github.com/jung0228/TCVP"><span class="link-icon" aria-hidden="true"><svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0 0 24 12c0-6.63-5.37-12-12-12z"/></svg></span> Code</a>
+        </div>
+      </div>
+      <div class="teaser-right">
+        <div class="teaser-bg">
+          <img src="figures/main.png" alt="TCVP" />
+        </div>
+        <div class="teaser-fade"></div>
+      </div>
+    </div>
+
+    <div class="authors-block">
+      <p class="names">
+        Hyeonwoo Jung<sup>1</sup>
+        <a href="https://www.junha.page/">Junha Song</a><sup>2</sup>
+        Seungbin Yang<sup>2</sup>
+        SunYoung Park<sup>3</sup>
+        Jong-Hyeon Lee<sup>3</sup>
+        <a href="https://sites.google.com/site/jaegulchoo/">Jaegul Choo</a><sup>2</sup>
+      </p>
+      <p class="affiliations">
+        <sup>1</sup>Soongsil University &nbsp; <sup>2</sup>KAIST &nbsp; <sup>3</sup>NC SOFT
+      </p>
+    </div>
+
+    <div class="intro-block">
+      <p class="intro-lead">We introduce TCVP, a practical pipeline for Video Moment Retrieval (VMR) dataset generation that leverages timestamped YouTube comments to identify important moments and reflect real user search intent.</p>
+      <p class="intro-lead">TCVP is structured around the following aspects, each offering insights into building user-intent-aligned VMR data:</p>
+      <div class="intro-pillars">
+        <p><span class="pillar-label">1. Why this matters:</span> We motivate the need for benchmarks that reflect how users actually search for moments.</p>
+        <p><span class="pillar-label">2. Pipeline:</span> We present a four-stage pipeline with comment filtering and modality gating.</p>
+        <p><span class="pillar-label">3. Analysis:</span> We analyze modality distribution and compare moments and queries with baselines.</p>
+        <p><span class="pillar-label">4. Main Results:</span> We report human evaluation (70% preference) and model benchmarking.</p>
+        <p><span class="pillar-label">5. Citation:</span> BibTeX and reference for our work.</p>
+      </div>
+    </div>
+
+    <!-- Section nav — Cambrian 스타일 -->
+    <nav class="section-nav">
+      <div class="links">
+        <a href="#why"><span class="nav-icon"><svg viewBox="0 0 24 24"><path d="M9 21c0 .55.45 1 1 1h4c.55 0 1-.45 1-1v-1H9v1zm3-19C8.14 2 5 5.14 5 9c0 2.38 1.19 4.47 3 5.74V17c0 .55.45 1 1 1h6c.55 0 1-.45 1-1v-2.26c1.81-1.27 3-3.36 3-5.74 0-3.86-3.14-7-7-7z"/></svg></span>Why this matters</a>
+        <a href="#pipeline"><span class="nav-icon"><svg viewBox="0 0 24 24"><path d="M4 6h2v12H4V6zm3 5h2v7H7v-7zm3-2h2v9h-2V9zm3 2h2v7h-2v-7zm3-5h2v12h-2V6z"/></svg></span>Pipeline</a>
+        <a href="#analysis"><span class="nav-icon"><svg viewBox="0 0 24 24"><path d="M3 3v18h18V3H3zm16 16H5V5h14v14zM7 17h2v-4H7v4zm4 0h2V7h-2v10zm4 0h2v-6h-2v6z"/></svg></span>Analysis</a>
+        <a href="#results"><span class="nav-icon"><svg viewBox="0 0 24 24"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-5 14H7v-2h7v2zm3-4H7v-2h10v2zm0-4H7V7h10v2z"/></svg></span>Main Results</a>
+        <a href="#citation"><span class="nav-icon"><svg viewBox="0 0 24 24"><path d="M14 2H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V8l-6-6zm-1 2 5 5h-5V4zm-2 12v-2h4v2h-4zm0-4v-2h4v2h-4z"/></svg></span>Citation</a>
+      </div>
+      <div class="jump-hint">
+        <span class="cursor-icon"><svg viewBox="0 0 24 24" width="18" height="18" xmlns="http://www.w3.org/2000/svg" fill="currentColor"><path d="M9 11.24V7.5C9 6.12 10.12 5 11.5 5S14 6.12 14 7.5v3.74c1.21-.81 2-2.18 2-3.74C16 5.01 13.99 3 11.5 3S7 5.01 7 7.5c0 1.56.79 2.93 2 3.74zm9.84 4.63l-4.54-2.26c-.17-.07-.35-.11-.54-.11H13v-6c0-.83-.67-1.5-1.5-1.5S10 6.67 10 7.5v10.74c0 .27.11.52.29.71l.12.12c.32.3.74.43 1.17.43h6.24c.66 0 1.19-.54 1.19-1.2 0-.32-.13-.63-.35-.86l-2.12-2.12z"/></svg></span>
+        Click to jump to each section.
+      </div>
+    </nav>
+
+    <p class="intro-outro">To this end, TCVP not only delivers a user-preferred dataset (70% in human evaluation) but also highlights limitations of current VMR methods. See §<a href="#analysis">Analysis of TCVP</a> and §<a href="#results">Main Results</a>. We provide the <a href="https://drive.google.com/file/d/1R0IP1KUWmU64yj7jdO5Xcix6tbMDi1Uf/view?usp=sharing">paper</a> and <a href="https://github.com/jung0228/TCVP">code</a>. We hope our release will support building more intent-aligned video retrieval benchmarks.</p>
+
+    <section id="why">
+      <h2>Why this matters</h2>
+      <figure class="section-fig fig-tight-top">
+        <img src="figures/METHOD%20Comparison.png" alt="Standard vs TCVP pipeline comparison" />
+        <figcaption class="fig-caption"><strong>Figure 1:</strong> Comparison between our comment-based pipeline and a standard pipeline. Our method selects moments using timestamped user comments with modality-aware filtering to generate natural queries, whereas standard pipelines select effectively random moments.</figcaption>
+      </figure>
+      <ul>
+        <li>Video retrieval should find the exact moment a person has in mind, not just a clip that sounds plausible.</li>
+        <li>When benchmarks are built from arbitrary segments and caption-like queries, models can post strong scores while still missing real user intent in practice.</li>
+        <li>On the left, the standard pipeline uses random moment sampling and caption-like queries, which can produce plausible text while still missing the exact moment the user wants.</li>
+        <li>On the right, our pipeline uses timestamp-anchored selection with comment filtering and modality gating to keep selected moments and generated queries aligned with user intent.</li>
+      </ul>
+    </section>
+
+    <section id="pipeline" class="pipeline">
+      <h2>TCVP: Timestamped Comment-guided VMR Pipeline</h2>
+      <p>Our pipeline consists of four stages. This design improves cleaner moment grounding and more user-intent-aligned queries.</p>
+      <figure class="section-fig fig-tight-top">
+        <img src="figures/TCVP%20pipeline.png" alt="TCVP pipeline overview" />
+        <figcaption class="fig-caption"><strong>Figure 2:</strong> TCVP overview of comment filtering &amp; modality gating and query generation. TCVP computes comment–caption similarity scores and applies modality gating and then generates a query for the target moment.</figcaption>
+      </figure>
+      <ol>
+        <li>
+          <strong>Video and Comment Collection</strong>
+          We collect videos and timestamped comments so each candidate moment is anchored to an actual user reaction.
+        </li>
+        <li>
+          <strong>Modality-Specific Captioning</strong>
+          For each candidate segment, we generate separate VISUAL and AUDIO descriptions to preserve modality-specific evidence.
+        </li>
+        <li>
+          <strong>Comment Filtering and Modality Gating</strong>
+          We remove low-information comments and score modality relevance. We set the gating threshold to τ = 0.3, and we discard samples below this threshold as unrelated.
+        </li>
+        <li>
+          <strong>User Query Generation</strong>
+          We convert filtered comments and modality cues into concise, search-style queries aligned with the selected moment.
+        </li>
+      </ol>
+    </section>
+
+    <section id="analysis">
+      <h2>Analysis of TCVP</h2>
+
+      <div class="modality-row">
+        <figure class="section-fig modality-fig">
+          <img src="figures/modality%20distribution.png" alt="Modality distribution" />
+        </figure>
+        <div class="modality-text">
+          <p>We examine its modality statistics and conduct a qualitative comparison of both moments and user queries against existing VMR datasets, followed by human evaluation results.</p>
+          <h3>Modality Distribution</h3>
+          <p>The final dataset contains 45.9% audio-related, 39.8% vision-related, and 14.3% unrelated samples. This balance supports realistic multimodal evaluation while keeping noisy cases explicit.</p>
+        </div>
+      </div>
+      <p class="fig-caption fig-caption-full"><strong>Figure 3:</strong> Dataset statistics for modality. The pie chart shows the overall split of visual-related, audio-related, and unrelated comments.</p>
+
+      <h3>Qualitative comparison of moment selection</h3>
+      <ul>
+        <li>In the standard pipeline, moment selection can miss the event users actually care about, yielding weak or less informative targets.</li>
+        <li>When moment selection is based on timestamped viewer comments and refined through comment filtering and modality-aware gating, selected segments capture clearer, more eventful content.</li>
+        <li>As shown in our examples, this improves alignment between target moments and user intent, yielding more salient retrieval targets.</li>
+      </ul>
+      <figure class="section-fig">
+        <img src="figures/Qualitative%20comparison%20of%20moment%20selection.png" alt="Qualitative comparison of moment selection" />
+        <figcaption class="fig-caption"><strong>Figure 4:</strong> Qualitative comparison of moment selection within the same videos. Comment-based selection (timestamped user comments) tends to capture eventful segments that attract user reactions, whereas random sampling often yields ordinary segments with weak retrieval cues.</figcaption>
+      </figure>
+
+      <h3>Qualitative comparison of queries</h3>
+      <ul>
+        <li>In the standard pipeline, generated queries often read like generic captions rather than expressions of real search intent.</li>
+        <li>When query generation is grounded in timestamped viewer comments and refined with comment filtering and modality gating, queries stay focused on the event users actually care about.</li>
+        <li>This leads to intent-aligned queries that preserve the key keywords from user comments, as shown in our examples.</li>
+      </ul>
+      <figure class="section-fig">
+        <img src="figures/Qualitative%20comparison%20of%20queries%20generated.png" alt="Qualitative comparison of queries" />
+        <figcaption class="fig-caption"><strong>Figure 5:</strong> Qualitative comparison of queries generated for the same moments. Each example shows sampled frames, an audio summary, and the anchor timestamped comment, followed by queries from caption-based baselines (LongVALE, Watch&amp;Listen) and our variants (ours w/o comments and ours w/ comments).</figcaption>
+      </figure>
+
+      <div class="human-eval-intro-box">
+        <h3>Human evaluation</h3>
+        <p>We evaluate 40 examples with three independent annotators per example. For each item, the final judgment is determined by majority vote (at least 2 out of 3 annotators). We report results based on these majority-vote decisions.</p>
+      </div>
+      <div class="human-eval-cols">
+        <div class="human-eval-col">
+          <h4>Timestamped vs randomly selected</h4>
+          <p>Timestamp-based moment selection was preferred in <strong>95%</strong> of comparisons. This shows that comment-linked timestamps provide highly reliable anchors for identifying user-attended moments.</p>
+          <figure class="section-fig">
+            <img src="figures/Human%20evaluation%20of%20moment%20selection.png" alt="Human evaluation of moment selection" />
+            <figcaption class="fig-caption"><strong>Figure 6:</strong> Human evaluation of moment selection. Annotators choose the moment that is more likely to be searched for retrieval between comment-based selection and random sampling.</figcaption>
+          </figure>
+        </div>
+        <div class="human-eval-col">
+          <h4>Are our queries realistic?</h4>
+          <p>In human evaluation, queries generated by Ours w/ comments were preferred in <strong>70%</strong> of comparisons. This shows that TCVP makes queries better match how users naturally describe moments.</p>
+          <figure class="section-fig">
+            <img src="figures/Human%20evaluation%20of%20generated%20queries.png" alt="Human evaluation of generated queries" />
+            <figcaption class="fig-caption"><strong>Figure 7:</strong> Human evaluation of generated queries. We compare caption-based baselines (LongVALE, Watch&amp;Listen) with our dataset.</figcaption>
+          </figure>
+        </div>
+      </div>
+    </section>
+
+    <section id="results">
+      <h2>Main Results</h2>
+      <ul>
+        <li>For single-timestamp prediction, raw audio provides only marginal gains, while ASR subtitles deliver the largest improvements over Vision-only input (Gemini: Vision +20.0, Audio +22.0), and the same pattern holds across open-source MLLMs.</li>
+        <li>The same trend appears in segment-caption ranking, where subtitle augmentation consistently improves open-source MLLMs, including Qwen2.5-Omni from Audio R@10 27.5 to 48.2.</li>
+        <li>Visual embedding models remain the strongest overall baseline and stay competitive even on audio-related queries, while audio-only embeddings are lower (CLAP 24.2, LanguageBind-Audio 24.1), indicating strong speech-linked and visually correlated context effects.</li>
+      </ul>
+      <figure class="section-fig">
+        <img src="figures/%20Comparison%20of%20VMR%20performance.png" alt="Comparison of VMR performance" />
+        <figcaption class="fig-caption"><strong>Table 1:</strong> Comparison of VMR performance across models and input modality configurations, evaluated using Recall@1, Recall@5, and Recall@10. Avg(R@10) reports Recall@10 on the ALL split.</figcaption>
+      </figure>
+    </section>
+
+    <section id="citation">
+      <h2>Citation</h2>
+      <div class="bib-wrap">
+        <pre class="bibtex" id="bibtex">@article{jung2026tcvp,
+  title = {TCVP: A Practical Pipeline for Video Moment Retrieval Datasets Leveraging Timestamped Video Comments},
+  author = {Hyeonwoo Jung and Junha Song and Seungbin Yang and SunYoung Park and Jong-Hyeon Lee and Jaegul Choo},
+  journal = {arXiv preprint arXiv:XXXX.XXXXX},
+  year = {2026}
+}</pre>
+      </div>
+    </section>
+
+    <footer>
+      TCVP project page. Update arXiv ID in the BibTeX when available.
+    </footer>
+  </div>
+
+  <script>
+    function copyBibtex() {
+      var pre = document.getElementById('bibtex');
+      var btn = document.querySelector('.copy-btn');
+      navigator.clipboard.writeText(pre.textContent).then(function() {
+        btn.textContent = 'Copied!';
+        btn.classList.add('copied');
+        setTimeout(function() { btn.textContent = 'Copy BibTeX'; btn.classList.remove('copied'); }, 2000);
+      });
+    }
+  </script>
+</body>
+</html>
