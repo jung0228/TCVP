@@ -1,9 +1,10 @@
 # Video Moment Retrieval
-![TCVP Pipeline](figures/TCVP%20pipeline.png)
 [![Python 3.8+](https://img.shields.io/badge/python-3.8+-blue.svg)](https://www.python.org/downloads/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 A pipeline that collects and analyzes YouTube video comments, combines them with video segment captions, and automatically generates search queries for **moment retrieval**.
+![TCVP Pipeline](figures/TCVP%20pipeline.png)
+
 
 🔗 Project Page
 https://jung0228.github.io/TCVP/
