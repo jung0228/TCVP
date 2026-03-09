@@ -25,10 +25,10 @@ A pipeline that collects and analyzes YouTube video comments, combines them with
 - **Popular video discovery**: Build video lists by channel/category using `yt-dlp`
 - **Comment crawling**: Per-video comment collection with parallel workers
 - **Comment preprocessing**: Timestamp extraction, deduplication, language filtering
-- **Video caption generation**: Segment-level visual/audio descriptions (FFmpeg + AI)
-- **Segment integration**: Merge multiple segments into single captions (LLM)
-- **Modality gating**: Visual/audio classification from comment–caption similarity
-- **Moment query generation**: Retrieval queries from classified data (OpenAI / Letsur)
+- **Video caption generation**: Segment-level visual/audio descriptions (FFmpeg + Qwen2.5-Omni-7B)
+- **Segment integration**: Merge multiple segments into single captions (OpenAI)
+- **Modality gating**: Visual/audio classification from comment–caption similarity (Qwen3-Embedding-8B)
+- **Moment query generation**: Retrieval queries from classified data (OpenAI)
 
 ---
 
@@ -39,7 +39,8 @@ A pipeline that collects and analyzes YouTube video comments, combines them with
 - **Python** 3.8+
 - **yt-dlp**: YouTube metadata and download
 - **FFmpeg**: Video segment extraction
-- **API keys** (optional): OpenAI or Letsur AI Gateway
+- **CUDA GPU**: Recommended for Qwen model inference
+- **OpenAI API key**: For segment integration and query generation
 
 ```bash
 git clone https://github.com/jung0228/TCVP.git
@@ -51,89 +52,48 @@ pip install -r requirements.txt
 ### Environment variables
 
 ```bash
-# OpenAI
 export OPENAI_API_KEY='your-openai-api-key'
-
-# Or Letsur AI Gateway
-export LETSUR_API_KEY='your-letsur-api-key'
-export LETSUR_MODEL='gpt-4.1'  # optional
 ```
 
 ---
 
 ## Usage
 
-Run all commands **from the project root**. Pipeline order: **1 → 2 → 3 → 4(optional) → 5 → 6 → 7 → 8**
+Run all commands **from the project root**. Pipeline order: **1 → 2(optional) → 3 → 4**
 
-### Step 1: Build popular video list
+### Step 1: Collect data (video discovery + comments + filtering)
 
 ```bash
+# All channels in csv/channel_categories.csv
+python pipeline/collect_data.py --top 10 --workers 5
+
 # Single channel
-python pipeline/find_popular_videos.py @channel_handle --top 10 --save --channel-name "Channel Name" --category "category"
-
-# Batch (uses data/csv/channel_categories.csv)
-python pipeline/find_popular_videos.py --batch --top 10
+python pipeline/collect_data.py --channel @TED --channel-name "TED" --category "talk show"
 ```
 
-### Step 2: Crawl comments
+Output: `csv/video_id_mapping.csv`, `Comments/<video_id>_comments.csv`, `csv/merged_filtered_comments_with_dedup_lang.csv`
 
-```bash
-python pipeline/crawl_comments.py --workers 5
-```
-
-### Step 3: Merge & language filter
-
-```bash
-python pipeline/yt_merge_with_dedup_lang.py
-```
-
-Output: `data/csv/merged_filtered_comments_with_dedup_lang.csv`
-
-### Step 4: Download videos (optional)
+### Step 2: Download videos (optional)
 
 ```bash
 python pipeline/download_videos.py --resolution 360
 ```
 
-### Step 5: Generate captions
+### Step 3: Generate captions + integrate segments
 
 ```bash
-python pipeline/generate_captions_range.py 1 100
+python pipeline/generate_captions.py 1 --end 100
 ```
 
-Output: `data/captions/captions_<video_id>.json`
+Output: `captions_by_video/captions_<video_id>_integrated.json`
 
-### Step 6: Integrate segments
+### Step 4: Classify modality + generate moment queries
 
 ```bash
-# OpenAI
-python pipeline/segment_integrator.py data/captions --folder
-
-# Letsur
-python pipeline/segment_integrator_staxai.py data/captions --folder
+python pipeline/generate_queries.py
 ```
 
-Output: `*_integrated.json`
-
-### Step 7: Modality gating
-
-```bash
-python pipeline/modality_gating.py data/captions --folder
-```
-
-Output: `*_classified.json`
-
-### Step 8: Moment query generation
-
-```bash
-# OpenAI
-python pipeline/query_generator.py --input data/captions --folder
-
-# Letsur
-python pipeline/query_generator_staxai.py --input data/captions --folder
-```
-
-Output: `*_moment_queries.json`
+Output: `captions_by_video/captions_<video_id>_moment_queries.json`
 
 ---
 
@@ -141,22 +101,27 @@ Output: `*_moment_queries.json`
 
 ```
 TCVP/
-├── pipeline/                         # Pipeline scripts
-│   ├── find_popular_videos.py        # 1. Popular video discovery
-│   ├── crawl_comments.py             # 2. Comment crawling
-│   ├── yt_merge_with_dedup_lang.py   # 3. Comment merge & language filter
-│   ├── download_videos.py            # 4. Video download (optional)
-│   ├── generate_captions_range.py    # 5. Caption generation
+├── pipeline/
+│   ├── collect_data.py               # [Step 1] Video discovery + comment crawling + filtering
+│   ├── download_videos.py            # [Step 2] Video download (optional)
+│   ├── generate_captions.py          # [Step 3] Caption generation + segment integration
+│   ├── generate_queries.py           # [Step 4] Modality classification + query generation
+│   │
 │   ├── OptimizedMomentQueryGenerator.py  # Core module for caption generation
-│   ├── segment_integrator.py         # 6. Segment integration (OpenAI)
-│   ├── segment_integrator_staxai.py  # 6. Segment integration (Letsur)
-│   ├── modality_gating.py            # 7. Modality gating
-│   ├── query_generator.py            # 8. Query generation (OpenAI)
-│   └── query_generator_staxai.py     # 8. Query generation (Letsur)
-├── data/
-│   ├── csv/                          # Channel/video mapping and merged comments
-│   ├── comments/                     # Per-video crawled comments
-│   └── captions/                     # Caption, integrated, classified, query JSONs
+│   │
+│   └── (individual scripts — can also be run separately)
+│       ├── find_popular_videos.py
+│       ├── crawl_comments.py
+│       ├── yt_merge_with_dedup_lang.py
+│       ├── generate_captions_range.py
+│       ├── segment_integrator.py
+│       ├── segment_integrator_staxai.py
+│       ├── modality_gating.py
+│       ├── query_generator.py
+│       └── query_generator_staxai.py
+├── csv/                              # Channel/video mapping and merged comments
+├── Comments/                         # Per-video crawled comments
+├── captions_by_video/                # Integrated captions and moment query JSONs
 ├── figures/
 ├── requirements.txt
 ├── LICENSE
@@ -168,23 +133,18 @@ TCVP/
 ## Data Flow
 
 ```
-data/csv/channel_categories.csv
+csv/channel_categories.csv
         ↓
-pipeline/find_popular_videos.py     →  data/csv/video_id_mapping.csv
+[Step 1] collect_data.py
+        ↓  csv/video_id_mapping.csv
+        ↓  Comments/<video_id>_comments.csv
+        ↓  csv/merged_filtered_comments_with_dedup_lang.csv
         ↓
-pipeline/crawl_comments.py          →  data/comments/<video_id>_comments.csv
+[Step 2] download_videos.py (optional)
         ↓
-pipeline/yt_merge_with_dedup_lang.py  →  data/csv/merged_filtered_comments_with_dedup_lang.csv
+[Step 3] generate_captions.py     →  captions_by_video/captions_<video_id>_integrated.json
         ↓
-pipeline/download_videos.py (optional)
-        ↓
-pipeline/generate_captions_range.py →  data/captions/captions_<video_id>.json
-        ↓
-pipeline/segment_integrator*.py     →  *_integrated.json
-        ↓
-pipeline/modality_gating.py         →  *_classified.json
-        ↓
-pipeline/query_generator*.py        →  *_moment_queries.json
+[Step 4] generate_queries.py      →  captions_by_video/captions_<video_id>_moment_queries.json
 ```
 
 ---
